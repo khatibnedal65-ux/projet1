@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>لوحة مراقبة أسواق الطاقة الشمسية</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Cairo', system-ui, sans-serif; }
+    table { direction: rtl; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+  <header class="bg-gradient-to-l from-emerald-700 to-emerald-500 text-white shadow">
+    <div class="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
+      <h1 class="text-2xl md:text-3xl font-bold">لوحة مراقبة أسواق الطاقة الشمسية</h1>
+      <div id="last-update" class="text-sm opacity-80"></div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-6">
+    <section class="bg-white rounded-2xl shadow p-5 mb-6">
+      <div class="flex flex-wrap gap-4 items-end">
+        <div class="flex flex-col">
+          <label for="country" class="text-sm font-semibold text-slate-600 mb-1">اختر الدولة</label>
+          <select id="country" class="border border-slate-300 rounded-lg px-3 py-2 min-w-[220px] bg-white">
+            <option value="all">كل الدول</option>
+            {% for code, label in countries.items() %}
+              <option value="{{ code }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button id="refresh-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-lg shadow">
+          تحديث / جلب
+        </button>
+        <button id="scrape-btn" class="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-5 py-2.5 rounded-lg shadow">
+          تشغيل المسح الآن
+        </button>
+        <span id="status" class="text-sm text-slate-500 mr-2"></span>
+      </div>
+    </section>
+
+    <section class="bg-white rounded-2xl shadow overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-200 text-slate-700">
+            <tr>
+              <th class="px-4 py-3 text-right">الدولة</th>
+              <th class="px-4 py-3 text-right">العنوان</th>
+              <th class="px-4 py-3 text-right">الكمية</th>
+              <th class="px-4 py-3 text-right">السعر (يورو)</th>
+              <th class="px-4 py-3 text-right">يورو/واط</th>
+              <th class="px-4 py-3 text-right">التقييم</th>
+              <th class="px-4 py-3 text-right">الرابط</th>
+            </tr>
+          </thead>
+          <tbody id="rows" class="divide-y divide-slate-100">
+            <tr><td colspan="7" class="text-center text-slate-500 py-8">لا توجد بيانات بعد. اضغط "تشغيل المسح الآن".</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+<script>
+const fmt = new Intl.NumberFormat('ar-EG', { maximumFractionDigits: 4 });
+const fmtPrice = new Intl.NumberFormat('ar-EG', { maximumFractionDigits: 2 });
+
+function rowHtml(item) {
+  const price = item.price_eur != null ? fmtPrice.format(item.price_eur) : '—';
+  const epw = item.eur_per_watt != null ? fmt.format(item.eur_per_watt) : '—';
+  const badge = item.classification
+    ? `<span class="inline-block ${item.classification_color} text-white text-xs px-2.5 py-1 rounded-full">${item.classification_ar}</span>`
+    : '<span class="text-slate-400">—</span>';
+  const link = `<a href="${item.listing_url}" target="_blank" rel="noopener" class="text-emerald-700 hover:underline">فتح</a>`;
+  const title = (item.title || '').replace(/</g, '&lt;');
+  return `<tr class="hover:bg-slate-50">
+    <td class="px-4 py-3 whitespace-nowrap">${item.country_ar}</td>
+    <td class="px-4 py-3"><div class="font-medium">${title}</div><div class="text-xs text-slate-500">${item.source_website}</div></td>
+    <td class="px-4 py-3 whitespace-nowrap">${item.quantity ?? '—'}</td>
+    <td class="px-4 py-3 whitespace-nowrap">${price}</td>
+    <td class="px-4 py-3 whitespace-nowrap">${epw}</td>
+    <td class="px-4 py-3 whitespace-nowrap">${badge}</td>
+    <td class="px-4 py-3 whitespace-nowrap">${link}</td>
+  </tr>`;
+}
+
+async function loadListings() {
+  const country = document.getElementById('country').value;
+  const status = document.getElementById('status');
+  status.textContent = 'جاري التحميل...';
+  try {
+    const res = await fetch(`/api/listings?country=${encodeURIComponent(country)}`);
+    const data = await res.json();
+    const tbody = document.getElementById('rows');
+    if (!data.items.length) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-slate-500 py-8">لا توجد نتائج.</td></tr>`;
+    } else {
+      tbody.innerHTML = data.items.map(rowHtml).join('');
+    }
+    status.textContent = `العدد: ${data.count}`;
+    document.getElementById('last-update').textContent = 'آخر تحديث: ' + new Date().toLocaleString('ar-EG');
+  } catch (e) {
+    status.textContent = 'خطأ في الجلب';
+  }
+}
+
+async function triggerScrape() {
+  const status = document.getElementById('status');
+  status.textContent = 'بدأ المسح في الخلفية...';
+  await fetch('/api/scrape', { method: 'POST' });
+  const poll = setInterval(async () => {
+    const r = await fetch('/api/scrape/status');
+    const j = await r.json();
+    if (!j.running) {
+      clearInterval(poll);
+      status.textContent = 'انتهى المسح';
+      loadListings();
+    }
+  }, 4000);
+}
+
+document.getElementById('refresh-btn').addEventListener('click', loadListings);
+document.getElementById('scrape-btn').addEventListener('click', triggerScrape);
+document.getElementById('country').addEventListener('change', loadListings);
+loadListings();
+</script>
+</body>
+</html>
