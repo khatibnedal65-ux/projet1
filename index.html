@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF Flipbook</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Upload Screen -->
+    <div id="upload-screen">
+      <div id="upload-box">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M32 4L32 40M20 16l12-12 12 12M12 44v8a4 4 0 004 4h32a4 4 0 004-4v-8"/>
+        </svg>
+        <h1>PDF Flipbook</h1>
+        <p>Open a PDF file to view it as an interactive flipbook.<br>Your file never leaves your device.</p>
+        <label id="upload-btn" for="pdf-input">
+          Choose PDF File
+        </label>
+        <input type="file" id="pdf-input" accept=".pdf" />
+        <p class="hint">Drag &amp; drop a PDF here</p>
+      </div>
+    </div>
+
+    <!-- Viewer Screen -->
+    <div id="viewer-screen" class="hidden">
+      <!-- Top Bar -->
+      <header id="top-bar">
+        <button id="back-btn" title="Upload new PDF">&#8592; New PDF</button>
+        <span id="file-name-display"></span>
+        <div id="top-actions">
+          <button id="dark-mode-btn" title="Toggle dark mode">&#9790;</button>
+          <button id="fullscreen-btn" title="Fullscreen">&#x26F6;</button>
+        </div>
+      </header>
+
+      <!-- Progress Bar -->
+      <div id="progress-bar-wrap">
+        <div id="progress-bar"></div>
+      </div>
+      <div id="loading-label">Loading pages… <span id="loading-percent">0%</span></div>
+
+      <!-- Flipbook Container -->
+      <main id="flipbook-wrap">
+        <div id="flipbook"></div>
+      </main>
+
+      <!-- Bottom Controls -->
+      <footer id="controls">
+        <button id="prev-btn" title="Previous page">&#8592; Prev</button>
+        <div id="page-info">
+          <span id="current-page">1</span> / <span id="total-pages">1</span>
+        </div>
+        <button id="next-btn" title="Next page">Next &#8594;</button>
+        <div id="zoom-controls">
+          <button id="zoom-out-btn" title="Zoom out">&#8722;</button>
+          <span id="zoom-label">100%</span>
+          <button id="zoom-in-btn" title="Zoom in">&#43;</button>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- pdf.js from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <!-- StPageFlip from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/StPageFlip/2.0.7/page-flip.browser.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
